@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>سامانه توزیع عادلانه بیماران اورژانس - نسخه 1.0</title>
+    <title>سامانه توزیع بیماران و تعرفه اورژانس - v1.1</title>
     <style>
-        /* فونت‌های محلی شبنم */
         @font-face {
             font-family: 'Shabnam';
             src: url('shabnam.ttf') format('truetype');
@@ -29,12 +28,12 @@
             --success-text: #15803d;
             --danger: #ef4444;
             --danger-bg: #fee2e2;
-            --bg: #f1f5f9;
+            --bg: #f8fafc;
             --card-bg: #ffffff;
             --text-main: #0f172a;
             --text-muted: #64748b;
             --border: #cbd5e1;
-            --radius: 12px;
+            --radius: 10px;
         }
 
         * {
@@ -48,37 +47,36 @@
         body {
             background-color: var(--bg);
             color: var(--text-main);
-            padding: 12px;
-            padding-bottom: 90px;
+            padding: 8px;
+            padding-bottom: 75px;
         }
 
         .container {
-            max-width: 1300px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
-        /* هدر */
+        /* هدر فشرده */
         header {
             background: var(--card-bg);
-            padding: 14px 18px;
+            padding: 8px 12px;
             border-radius: var(--radius);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 14px;
+            margin-bottom: 8px;
             border: 1px solid var(--border);
         }
 
         .header-title {
             display: flex;
             align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
+            gap: 6px;
         }
 
         .header-title h1 {
-            font-size: 1.15rem;
+            font-size: 0.95rem;
             color: var(--primary-dark);
             font-weight: bold;
         }
@@ -86,205 +84,225 @@
         .version-badge {
             background: #e2e8f0;
             color: #475569;
-            font-size: 0.75rem;
-            padding: 2px 8px;
-            border-radius: 6px;
+            font-size: 0.7rem;
+            padding: 1px 6px;
+            border-radius: 4px;
             font-weight: bold;
             direction: ltr;
-        }
-
-        .header-title p {
-            width: 100%;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 2px;
         }
 
         button {
             cursor: pointer;
             border: none;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            transition: all 0.15s ease;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            transition: all 0.1s ease;
         }
 
         .btn-reset {
             background: var(--danger-bg);
             color: var(--danger);
-            padding: 8px 14px;
+            padding: 5px 10px;
             font-weight: bold;
             border: 1px solid #fca5a5;
         }
 
-        .btn-reset:hover {
-            background: #fca5a5;
-        }
-
-        /* کارت‌ها */
-        .card {
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            padding: 14px 16px;
-            margin-bottom: 14px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid var(--border);
-        }
-
+        /* نوار ثبت پرستار - باریک و فشرده */
         .add-nurse-box {
             display: flex;
-            gap: 8px;
+            gap: 6px;
+            margin-bottom: 8px;
         }
 
         .add-nurse-box input {
             flex: 1;
-            padding: 10px 14px;
-            border-radius: 8px;
+            padding: 6px 10px;
+            border-radius: 6px;
             border: 1px solid var(--border);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             outline: none;
+            background: white;
         }
 
         .add-nurse-box input:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 2px var(--primary-light);
         }
 
         .btn-primary {
             background: var(--primary);
             color: white;
-            padding: 0 18px;
+            padding: 0 12px;
             font-weight: bold;
+            font-size: 0.85rem;
         }
 
-        .btn-primary:active {
-            background: var(--primary-dark);
-        }
-
-        /* کارت‌های وضعیت پرستاران */
+        /* چیدمان فشرده پرستاران (۳ ستونه برای موبایل) */
         .nurses-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-            gap: 12px;
-            margin-bottom: 16px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
         }
 
         .nurse-card {
             background: var(--card-bg);
-            border: 2px solid var(--border);
-            border-radius: var(--radius);
-            padding: 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 8px;
             cursor: pointer;
             position: relative;
             transition: all 0.15s ease;
             user-select: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 58px;
         }
 
         .nurse-card.selected {
             border-color: var(--primary);
             background-color: var(--primary-light);
-            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.25);
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.3);
         }
 
         .nurse-card.suggested {
             border-color: var(--success);
+            background-color: #f0fdf4;
         }
 
-        .suggested-badge {
+        .suggested-dot {
             position: absolute;
-            top: 8px;
-            left: 8px;
-            background: var(--success-bg);
-            color: var(--success-text);
-            font-size: 0.7rem;
-            padding: 2px 7px;
-            border-radius: 12px;
+            top: 4px;
+            left: 4px;
+            background: var(--success);
+            color: white;
+            font-size: 0.62rem;
+            padding: 1px 4px;
+            border-radius: 4px;
             font-weight: bold;
         }
 
-        .nurse-header {
+        .nurse-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
-            padding-left: 55px;
         }
 
         .nurse-name {
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             font-weight: bold;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            max-width: 70%;
         }
 
         .btn-del-nurse {
             background: transparent;
             color: #94a3b8;
-            font-size: 0.8rem;
-            padding: 2px 4px;
+            font-size: 0.75rem;
+            padding: 0 2px;
         }
 
-        .btn-del-nurse:hover {
-            color: var(--danger);
-        }
-
-        .nurse-stats {
+        .nurse-bottom {
             display: flex;
             justify-content: space-between;
-            font-size: 0.8rem;
+            align-items: flex-end;
+            margin-top: 4px;
+        }
+
+        .nurse-count {
+            font-size: 0.72rem;
             color: var(--text-muted);
-            margin-bottom: 4px;
         }
 
         .nurse-points {
-            font-size: 1.35rem;
+            font-size: 1.15rem;
             font-weight: bold;
             color: var(--primary-dark);
-            text-align: left;
             direction: ltr;
+            line-height: 1;
         }
 
-        /* دسته‌بندی دکمه‌ها */
-        .category-title {
-            font-size: 0.95rem;
-            font-weight: bold;
-            color: #334155;
-            padding-bottom: 6px;
+        /* کارت بخش خدمات */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 10px 12px;
             margin-bottom: 10px;
-            border-bottom: 2px solid #e2e8f0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            border: 1px solid var(--border);
+        }
+
+        .category-title {
+            font-size: 0.88rem;
+            font-weight: bold;
+            color: #1e293b;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+            border-bottom: 1.5px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .category-priority-tag {
+            font-size: 0.7rem;
+            color: #0369a1;
+            background: #e0f2fe;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        /* گرید خدمات - تریاژ (۲ ستونه سریع) */
+        .services-grid-triage {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            margin-bottom: 6px;
         }
 
         .services-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 8px;
-            margin-bottom: 18px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            margin-bottom: 12px;
         }
 
         .service-btn {
             background: #ffffff;
             border: 1px solid #cbd5e1;
-            border-radius: 9px;
-            padding: 10px 12px;
+            border-radius: 7px;
+            padding: 8px 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             text-align: right;
-            gap: 10px;
-            min-height: 48px;
+            gap: 6px;
+            min-height: 42px;
         }
 
         .service-btn:active {
-            transform: scale(0.98);
-            background: #f8fafc;
+            transform: scale(0.97);
+            background: #f1f5f9;
             border-color: var(--primary);
         }
 
+        /* دکمه‌های پررنگ‌تر تریاژ */
+        .service-btn-triage {
+            border: 1.5px solid #93c5fd;
+            background: #fafafa;
+        }
+
+        .service-btn-triage:active {
+            background: #e0f2fe;
+        }
+
         .service-name {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: bold;
             color: var(--text-main);
-            line-height: 1.35;
+            line-height: 1.25;
         }
 
         .service-score {
@@ -292,8 +310,8 @@
             color: var(--primary-dark);
             font-size: 0.85rem;
             font-weight: bold;
-            padding: 3px 8px;
-            border-radius: 6px;
+            padding: 2px 6px;
+            border-radius: 5px;
             white-space: nowrap;
             direction: ltr;
         }
@@ -306,21 +324,22 @@
             right: 0;
             background: #0f172a;
             color: white;
-            padding: 10px 16px;
+            padding: 8px 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
             z-index: 999;
         }
 
         .mobile-bar-info {
-            font-size: 0.85rem;
+            font-size: 0.82rem;
         }
 
         .mobile-bar-info b {
             color: #38bdf8;
             font-size: 0.95rem;
+            margin-right: 4px;
         }
 
         /* تاریخچه */
@@ -331,12 +350,12 @@
         .history-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.8rem;
-            min-width: 500px;
+            font-size: 0.78rem;
+            min-width: 450px;
         }
 
         .history-table th, .history-table td {
-            padding: 9px 10px;
+            padding: 6px 8px;
             text-align: right;
             border-bottom: 1px solid var(--border);
         }
@@ -350,72 +369,64 @@
         .btn-delete-log {
             color: var(--danger);
             background: var(--danger-bg);
-            padding: 3px 8px;
-            font-size: 0.75rem;
+            padding: 2px 6px;
+            font-size: 0.72rem;
             border-radius: 4px;
         }
 
-        /* ریسپانسیو */
-        @media (max-width: 600px) {
-            body { padding: 8px; padding-bottom: 80px; }
-            header { flex-direction: column; align-items: flex-start; gap: 10px; }
-            .header-actions { width: 100%; display: flex; justify-content: flex-end; }
-            .nurses-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-            .services-grid { grid-template-columns: 1fr; }
-            .nurse-card { padding: 10px; }
+        /* تبلت و دسکتاپ */
+        @media (min-width: 768px) {
+            .nurses-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+            .services-grid-triage { grid-template-columns: repeat(4, 1fr); }
+            .services-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .nurse-card { min-height: 64px; }
         }
 
-        @media (min-width: 601px) and (max-width: 1080px) {
-            .services-grid { grid-template-columns: repeat(2, 1fr); }
-            .nurses-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-
-        @media (min-width: 1081px) {
+        @media (min-width: 1080px) {
+            .nurses-grid { grid-template-columns: repeat(7, 1fr); }
+            .services-grid-triage { grid-template-columns: repeat(4, 1fr); }
             .services-grid { grid-template-columns: repeat(3, 1fr); }
-            .nurses-grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
             .mobile-bar { display: none; }
-            body { padding-bottom: 20px; }
+            body { padding-bottom: 16px; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- هدر با برچسب نسخه -->
+    <!-- هدر -->
     <header>
         <div class="header-title">
-            <h1>سامانه توزیع بیماران و تعرفه اورژانس</h1>
-            <span class="version-badge">v1.0</span>
-            <p>تخصیص عادلانه خدمات و به حداقل رساندن اختلاف امتیاز شیفت</p>
+            <h1>سامانه توزیع بیماران اورژانس</h1>
+            <span class="version-badge">v1.1</span>
         </div>
-        <div class="header-actions">
-            <button class="btn-reset" onclick="resetShift()">پایان شیفت / ریست کامل</button>
-        </div>
+        <button class="btn-reset" onclick="resetShift()">پایان شیفت / ریست</button>
     </header>
 
-    <!-- ثبت پرستار -->
-    <div class="card">
-        <div class="add-nurse-box">
-            <input type="text" id="nurseInput" placeholder="نام پرستار بالین را وارد کنید..." onkeypress="if(event.key==='Enter') addNurse()">
-            <button class="btn-primary" onclick="addNurse()">+ ثبت پرستار</button>
-        </div>
+    <!-- ورودی افزودن پرستار -->
+    <div class="add-nurse-box">
+        <input type="text" id="nurseInput" placeholder="نام پرستار جدید..." onkeypress="if(event.key==='Enter') addNurse()">
+        <button class="btn-primary" onclick="addNurse()">+ افزودن</button>
     </div>
 
-    <!-- کارت‌های پرستاران -->
+    <!-- داشبورد فشرده پرستاران (همه ۷ نفر روی صفحه جا می‌شوند) -->
     <div class="nurses-grid" id="nurseCardsContainer"></div>
 
-    <!-- بخش خدمات (ترتیب اختصاصی جدید) -->
+    <!-- بخش خدمات (تریاژ در صدر) -->
     <div class="card">
-        <!-- ۱. تریاژ ۱ تا ۴ -->
-        <div class="category-title">۱. تعرفه تریاژ اورژانس</div>
-        <div class="services-grid" id="triageContainer"></div>
+        <!-- ۱. تریاژ ۱ تا ۴ (اولویت اول) -->
+        <div class="category-title">
+            <span>۱. تعرفه تریاژ اورژانس</span>
+            <span class="category-priority-tag">اولویت اصلی</span>
+        </div>
+        <div class="services-grid-triage" id="triageContainer"></div>
 
         <!-- ۲. اتاق عمل اورژانس -->
-        <div class="category-title">۲. اتاق عمل اورژانس</div>
+        <div class="category-title" style="margin-top: 8px;">۲. اتاق عمل اورژانس</div>
         <div class="services-grid" id="orContainer"></div>
 
         <!-- ۳. گروه‌های مراقبتی ۱ تا ۶ -->
-        <div class="category-title">۳. گروه‌های مراقبتی تحت‌نظر اورژانس</div>
+        <div class="category-title">۳. گروه‌های مراقبتی تحت‌نظر</div>
         <div class="services-grid" id="careContainer"></div>
 
         <!-- ۴. اعزام و انتقال -->
@@ -425,14 +436,14 @@
 
     <!-- تاریخچه ثبت‌ها -->
     <div class="card">
-        <div class="category-title" style="border:none; margin-bottom: 4px;">تاریخچه آخرین تخصیص‌ها (امکان حذف خطای ثبت)</div>
+        <div class="category-title" style="border:none; margin-bottom: 2px;">تاریخچه آخرین تخصیص‌ها</div>
         <div class="history-wrap">
             <table class="history-table">
                 <thead>
                     <tr>
                         <th>زمان</th>
-                        <th>نام پرستار</th>
-                        <th>اقدام / تعرفه</th>
+                        <th>پرستار</th>
+                        <th>خدمت</th>
                         <th>امتیاز</th>
                         <th>عملیات</th>
                     </tr>
@@ -443,21 +454,19 @@
     </div>
 </div>
 
-<!-- نوار چسبان موبایل -->
-<div class="mobile-bar" id="mobileBar">
+<!-- نوار چسبان وضعیت در موبایل -->
+<div class="mobile-bar">
     <div class="mobile-bar-info">
-        پرستار منتخب: <b id="mobileNurseName">انتخاب نشده</b>
+        پرستار منتخب: <b id="mobileNurseName">...</b>
     </div>
-    <span style="font-size: 0.75rem; color: #94a3b8;">روی خدمت بزنید</span>
+    <span style="font-size: 0.72rem; color: #94a3b8;">آماده ثبت خدمت</span>
 </div>
 
 <script>
-    // کلیدهای ذخیره‌سازی نسخه 1.0 برای جلوگیری از تداخل کش
-    const APP_VERSION = 'v1.0';
+    const APP_VERSION = 'v1.1';
     const STORAGE_NURSES = 'er_nurses_' + APP_VERSION;
     const STORAGE_LOGS = 'er_logs_' + APP_VERSION;
 
-    // لیست خدمات اختصاصی اورژانس طبق درخواست
     const erServices = {
         triage: [
             { name: 'تریاژ سطح 1', score: 11 },
@@ -466,7 +475,7 @@
             { name: 'تریاژ سطح 4', score: 1.5 }
         ],
         or: [
-            { name: 'تعداد بيمار در اتاق عمل اورژانس /سرپايي', score: 1.5 }
+            { name: 'بیمار در اتاق عمل اورژانس / سرپایی', score: 1.5 }
         ],
         care: [
             { name: 'گروه مراقبتی 1', score: 1.7 },
@@ -477,8 +486,8 @@
             { name: 'گروه مراقبتی 6', score: 13 }
         ],
         escort: [
-            { name: 'تعداد اعزام و انتقال به ازاء هر يك ساعت', score: 4.8 },
-            { name: 'تعداد اعزام و انتقال به ازاء هر يك ساعت اضافه', score: 2.4 }
+            { name: 'اعزام و انتقال (به ازاء هر ۱ ساعت)', score: 4.8 },
+            { name: 'اعزام و انتقال (هر ۱ ساعت اضافه)', score: 2.4 }
         ]
     };
 
@@ -488,8 +497,15 @@
 
     function init() {
         try {
-            const savedNurses = localStorage.getItem(STORAGE_NURSES);
-            const savedLogs = localStorage.getItem(STORAGE_LOGS);
+            // انتقال هوشمند اطلاعات نسخه ۱.۰ به ۱.۱ (در صورت وجود)
+            let savedNurses = localStorage.getItem(STORAGE_NURSES);
+            let savedLogs = localStorage.getItem(STORAGE_LOGS);
+
+            if (!savedNurses && localStorage.getItem('er_nurses_v1.0')) {
+                savedNurses = localStorage.getItem('er_nurses_v1.0');
+                savedLogs = localStorage.getItem('er_logs_v1.0');
+            }
+
             if (savedNurses) nurses = JSON.parse(savedNurses);
             if (savedLogs) logs = JSON.parse(savedLogs);
         } catch (e) {
@@ -524,7 +540,7 @@
 
     function removeNurse(id, event) {
         event.stopPropagation();
-        if (confirm('این پرستار حذف شود؟')) {
+        if (confirm('این همکار حذف شود؟')) {
             nurses = nurses.filter(n => n.id !== id);
             logs = logs.filter(l => l.nurseId !== id);
             if (selectedNurseId === id) selectedNurseId = null;
@@ -540,7 +556,7 @@
 
     function assignService(serviceName, score) {
         if (nurses.length === 0) {
-            alert('لطفاً ابتدا اسامی پرستاران شیفت را اضافه کنید.');
+            alert('لطفاً ابتدا اسامی پرستاران شیفت را وارد کنید.');
             return;
         }
 
@@ -561,7 +577,7 @@
             nurseName: nurse.name,
             serviceName: serviceName,
             score: score,
-            time: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            time: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
         });
 
         saveState();
@@ -585,7 +601,7 @@
     }
 
     function resetShift() {
-        if (confirm('هشدار: آیا می‌خواهید کلیه اطلاعات این شیفت ریست و پاک شود؟')) {
+        if (confirm('آیا کل اطلاعات این شیفت ریست شود؟')) {
             nurses = [];
             logs = [];
             selectedNurseId = null;
@@ -595,17 +611,17 @@
     }
 
     function renderServices() {
-        const createBtns = (list, containerId) => {
+        const createBtns = (list, containerId, isTriage = false) => {
             const el = document.getElementById(containerId);
             el.innerHTML = list.map(item => `
-                <button class="service-btn" onclick="assignService('${item.name}', ${item.score})">
+                <button class="service-btn ${isTriage ? 'service-btn-triage' : ''}" onclick="assignService('${item.name}', ${item.score})">
                     <span class="service-name">${item.name}</span>
                     <span class="service-score">${item.score}</span>
                 </button>
             `).join('');
         };
 
-        createBtns(erServices.triage, 'triageContainer');
+        createBtns(erServices.triage, 'triageContainer', true);
         createBtns(erServices.or, 'orContainer');
         createBtns(erServices.care, 'careContainer');
         createBtns(erServices.escort, 'escortContainer');
@@ -624,23 +640,21 @@
             selectedNurseId = lowest.id;
         }
 
+        // رندر کارت‌های بسیار فشرده ۳ ستونه
         container.innerHTML = nurses.map(nurse => {
             const isSelected = nurse.id === selectedNurseId;
             const isSuggested = (nurse.score === minScore && nurses.length > 1);
 
             return `
                 <div class="nurse-card ${isSelected ? 'selected' : ''} ${isSuggested ? 'suggested' : ''}" onclick="selectNurse(${nurse.id})">
-                    ${isSuggested ? '<span class="suggested-badge">اولویت بیمار بعدی</span>' : ''}
-                    <div class="nurse-header">
+                    ${isSuggested ? '<span class="suggested-dot">اولویت</span>' : ''}
+                    <div class="nurse-top">
                         <span class="nurse-name" title="${nurse.name}">${nurse.name}</span>
-                        <button class="btn-del-nurse" onclick="removeNurse(${nurse.id}, event)" title="حذف">✕</button>
+                        <button class="btn-del-nurse" onclick="removeNurse(${nurse.id}, event)">✕</button>
                     </div>
-                    <div class="nurse-stats">
-                        <span>تعداد خدمات:</span>
-                        <b>${nurse.patients}</b>
-                    </div>
-                    <div class="nurse-points">
-                        ${nurse.score}
+                    <div class="nurse-bottom">
+                        <span class="nurse-count">${nurse.patients} بیمار</span>
+                        <span class="nurse-points">${nurse.score}</span>
                     </div>
                 </div>
             `;
@@ -649,8 +663,9 @@
         const activeNurse = nurses.find(n => n.id === selectedNurseId);
         document.getElementById('mobileNurseName').innerText = activeNurse ? activeNurse.name : 'انتخاب نشده';
 
+        // تاریخچه
         const tbody = document.getElementById('historyTbody');
-        tbody.innerHTML = logs.slice(0, 15).map(log => `
+        tbody.innerHTML = logs.slice(0, 10).map(log => `
             <tr>
                 <td style="color:var(--text-muted);">${log.time}</td>
                 <td><b>${log.nurseName}</b></td>
