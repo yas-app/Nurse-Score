@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>سامانه توزیع بیماران و تعرفه اورژانس - v1.3</title>
+    <title>سامانه توزیع بیماران و تعرفه اورژانس - v1.4</title>
 
     <!-- تنظیمات آیکون و وب‌اپلیکیشن (افزودن به صفحه اصلی / Add to Home Screen) -->
     <meta name="theme-color" content="#0284c7">
@@ -117,6 +117,58 @@
             padding: 5px 10px;
             font-weight: bold;
             border: 1px solid #fca5a5;
+        }
+
+        /* مشخصات شیفت */
+        .shift-info-box {
+            display: grid;
+            grid-template-columns: minmax(0, 1.5fr) minmax(115px, 1fr) minmax(90px, 0.8fr);
+            gap: 7px;
+            padding: 9px;
+            margin-bottom: 8px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+
+        .shift-info-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .shift-info-field label {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: bold;
+        }
+
+        .shift-info-field input,
+        .shift-info-field select {
+            width: 100%;
+            min-width: 0;
+            height: 34px;
+            padding: 5px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #fff;
+            color: var(--text-main);
+            font-size: 0.82rem;
+            outline: none;
+        }
+
+        .shift-info-field input:focus,
+        .shift-info-field select:focus { border-color: var(--primary); }
+        .shift-info-field input[readonly] {
+            background: #f8fafc;
+            color: var(--primary-dark);
+            font-weight: bold;
+        }
+
+        @media (max-width: 380px) {
+            .shift-info-box { grid-template-columns: 1fr 1fr; }
+            .shift-info-field:first-child { grid-column: 1 / -1; }
         }
 
         /* نوار ثبت پرستار - باریک و فشرده */
@@ -449,10 +501,30 @@
     <header>
         <div class="header-title">
             <h1>سامانه توزیع بیماران اورژانس</h1>
-            <span class="version-badge">v1.3</span>
+            <span class="version-badge">v1.4</span>
         </div>
         <button class="btn-reset" onclick="resetShift()">پایان شیفت / ریست</button>
     </header>
+
+    <!-- مشخصات مسئول و شیفت؛ در حافظه مرورگر ذخیره می‌شود -->
+    <section class="shift-info-box" aria-label="مشخصات شیفت">
+        <div class="shift-info-field">
+            <label for="shiftSupervisor">مسئول شیفت</label>
+            <input type="text" id="shiftSupervisor" placeholder="نام مسئول شیفت" autocomplete="off" oninput="saveShiftInfo()">
+        </div>
+        <div class="shift-info-field">
+            <label for="shiftDate">تاریخ شیفت (شمسی)</label>
+            <input type="text" id="shiftDate" readonly aria-readonly="true">
+        </div>
+        <div class="shift-info-field">
+            <label for="shiftType">نوع شیفت</label>
+            <select id="shiftType" onchange="saveShiftInfo()">
+                <option value="D">D</option>
+                <option value="E">E</option>
+                <option value="N">N</option>
+            </select>
+        </div>
+    </section>
 
     <!-- ورودی افزودن پرستار -->
     <div class="add-nurse-box">
@@ -519,11 +591,12 @@
 </div>
 
 <script>
-    const APP_VERSION = 'v1.3';
+    const APP_VERSION = 'v1.4';
     // Keep the existing storage namespace so previously saved data remains available.
     const DATA_VERSION = 'v1.1';
     const STORAGE_NURSES = 'er_nurses_' + DATA_VERSION;
     const STORAGE_LOGS = 'er_logs_' + DATA_VERSION;
+    const STORAGE_SHIFT_INFO = 'er_shift_info_v1.4';
 
     const erServices = {
         triage: [
@@ -580,8 +653,43 @@
             console.error(e);
         }
 
+        loadShiftInfo();
         renderServices();
         updateUI();
+    }
+
+    function getCurrentJalaliDate() {
+        const parts = new Intl.DateTimeFormat('en-US-u-ca-persian-nu-latn', {
+            year: 'numeric', month: '2-digit', day: '2-digit'
+        }).formatToParts(new Date());
+        const values = {};
+        parts.forEach(part => { if (part.type !== 'literal') values[part.type] = part.value; });
+        const latinDate = `${values.year}/${values.month}/${values.day}`;
+        return latinDate.replace(/[0-9]/g, digit => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]);
+    }
+
+    function refreshShiftDate(persist = true) {
+        document.getElementById('shiftDate').value = getCurrentJalaliDate();
+        if (persist && document.getElementById('shiftSupervisor')) saveShiftInfo();
+    }
+
+    function loadShiftInfo() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(STORAGE_SHIFT_INFO) || '{}');
+            document.getElementById('shiftSupervisor').value = saved.supervisor || '';
+            document.getElementById('shiftType').value = ['D', 'E', 'N'].includes(saved.shift) ? saved.shift : 'D';
+        } catch (error) {
+            console.error('خطا در بازیابی مشخصات شیفت:', error);
+        }
+        refreshShiftDate();
+    }
+
+    function saveShiftInfo() {
+        localStorage.setItem(STORAGE_SHIFT_INFO, JSON.stringify({
+            supervisor: document.getElementById('shiftSupervisor').value.trim(),
+            date: document.getElementById('shiftDate').value,
+            shift: document.getElementById('shiftType').value
+        }));
     }
 
     function saveState() {
@@ -681,6 +789,10 @@
             nurses = [];
             logs = [];
             selectedNurseId = null;
+            localStorage.removeItem(STORAGE_SHIFT_INFO);
+            document.getElementById('shiftSupervisor').value = '';
+            document.getElementById('shiftType').value = 'D';
+            refreshShiftDate(false);
             saveState();
             updateUI();
         }
@@ -756,6 +868,9 @@
     }
 
     init();
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) refreshShiftDate();
+    });
 </script>
 
 <!-- ثبت Service Worker برای نصب‌پذیری و پشتیبانی آفلاین PWA -->
