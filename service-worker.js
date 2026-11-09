@@ -1,6 +1,6 @@
-/* Nurse Score PWA Service Worker - v1.4.1 */
+/* Nurse Score PWA Service Worker - v1.4.2 */
 const CACHE_PREFIX = 'nurse-score-';
-const CACHE_VERSION = 'v1.4.1';
+const CACHE_VERSION = 'v1.4.2';
 const CACHE_NAME = `${CACHE_PREFIX}${CACHE_VERSION}`;
 
 const APP_SHELL = [

@@ -130,6 +130,7 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
         }
+        .shift-info-box.is-hidden { display: none; }
 
         .shift-info-field {
             display: flex;
@@ -735,7 +736,12 @@
             document.getElementById('shiftSupervisor').value = saved.supervisor || '';
             document.getElementById('shiftType').value = ['morning', 'evening', 'night'].includes(saved.shift) ? saved.shift : 'morning';
             refreshShiftDate();
-            if (saved.registered) renderShiftSummary({ ...saved, date: getCurrentJalaliDate() });
+            if (saved.registered) {
+                renderShiftSummary({ ...saved, date: getCurrentJalaliDate() });
+                document.querySelector('.shift-info-box').classList.add('is-hidden');
+            } else {
+                document.querySelector('.shift-info-box').classList.remove('is-hidden');
+            }
         } catch (error) {
             console.error('خطا در بازیابی مشخصات شیفت:', error);
         }
@@ -746,7 +752,7 @@
         if (!summary || !info || !info.registered) return;
         const safeSupervisor = String(info.supervisor || '—').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
         const shiftLabel = SHIFT_LABELS[info.shift] || 'صبح';
-        summary.innerHTML = `<span>مسئول شیفت: <strong>${safeSupervisor}</strong></span><span>تاریخ: <strong>${info.date || getCurrentJalaliDate()}</strong></span><span>شیفت: <strong>${shiftLabel}</strong></span><span aria-label="ثبت شده">✓ ثبت شده</span>`;
+        summary.innerHTML = `<span>مسئول شیفت: <strong>${safeSupervisor}</strong></span><span>تاریخ: <strong>${info.date || getCurrentJalaliDate()}</strong></span><span>شیفت: <strong>${shiftLabel}</strong></span>`;
         summary.classList.add('visible');
     }
 
@@ -760,6 +766,7 @@
         document.getElementById('shiftDate').value = info.date;
         localStorage.setItem(STORAGE_SHIFT_INFO, JSON.stringify(info));
         renderShiftSummary(info);
+        document.querySelector('.shift-info-box').classList.add('is-hidden');
     }
 
     function saveState() {
@@ -864,6 +871,7 @@
             document.getElementById('shiftType').value = 'morning';
             document.getElementById('shiftSummary').innerHTML = '';
             document.getElementById('shiftSummary').classList.remove('visible');
+            document.querySelector('.shift-info-box').classList.remove('is-hidden');
             refreshShiftDate();
             saveState();
             updateUI();
