@@ -128,6 +128,7 @@
 
         .add-nurse-box input {
             flex: 1;
+            min-width: 90px;
             padding: 6px 10px;
             border-radius: 6px;
             border: 1px solid var(--border);
@@ -136,7 +137,19 @@
             background: white;
         }
 
-        .add-nurse-box input:focus {
+        .add-nurse-box select {
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 0.82rem;
+            outline: none;
+            background: white;
+            color: var(--text-main);
+            max-width: 100px;
+        }
+
+        .add-nurse-box input:focus,
+        .add-nurse-box select:focus {
             border-color: var(--primary);
         }
 
@@ -206,15 +219,41 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 70%;
+            max-width: calc(100% - 28px);
         }
 
         .btn-del-nurse {
-            background: transparent;
-            color: #94a3b8;
-            font-size: 0.75rem;
-            padding: 0 2px;
+            position: absolute;
+            top: 4px;
+            right: 5px;
+            z-index: 3;
+            display: grid;
+            place-items: center;
+            width: 22px;
+            height: 22px;
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            line-height: 1;
+            padding: 0;
         }
+
+        .nurse-role {
+            display: inline-block;
+            width: fit-content;
+            margin-top: 3px;
+            padding: 1px 5px;
+            border-radius: 4px;
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 0.62rem;
+            line-height: 1.5;
+        }
+
+        .nurse-card { padding-right: 8px; }
+        .nurse-top { padding-right: 23px; }
 
         .nurse-bottom {
             display: flex;
@@ -418,6 +457,11 @@
     <!-- ورودی افزودن پرستار -->
     <div class="add-nurse-box">
         <input type="text" id="nurseInput" placeholder="نام پرستار جدید..." onkeypress="if(event.key==='Enter') addNurse()">
+        <select id="nurseRole" aria-label="نقش پرستار">
+            <option value="acute">حاد</option>
+            <option value="or">OR</option>
+            <option value="cpr">CPR</option>
+        </select>
         <button class="btn-primary" onclick="addNurse()">+ افزودن</button>
     </div>
 
@@ -509,6 +553,14 @@
     let logs = [];
     let selectedNurseId = null;
 
+    const nurseRoleLabels = { acute: 'حاد', or: 'OR', cpr: 'CPR' };
+    function getNurseRole(nurse) {
+        return nurse.role === 'or' || nurse.role === 'cpr' ? nurse.role : 'acute';
+    }
+    function getPriorityNurses() {
+        return nurses.filter(nurse => getNurseRole(nurse) === 'acute');
+    }
+
     function init() {
         try {
             // انتقال هوشمند اطلاعات نسخه ۱.۰ به ۱.۱ (در صورت وجود)
@@ -522,6 +574,8 @@
 
             if (savedNurses) nurses = JSON.parse(savedNurses);
             if (savedLogs) logs = JSON.parse(savedLogs);
+            // پرستاران ذخیره‌شده در نسخه‌های قبلی، به‌صورت پیش‌فرض در گروه حاد قرار می‌گیرند.
+            nurses = nurses.map(nurse => ({ ...nurse, role: getNurseRole(nurse) }));
         } catch (e) {
             console.error(e);
         }
@@ -538,16 +592,19 @@
     function addNurse() {
         const input = document.getElementById('nurseInput');
         const name = input.value.trim();
+        const role = document.getElementById('nurseRole').value;
         if (!name) return;
 
         nurses.push({
             id: Date.now(),
             name: name,
+            role: role,
             score: 0,
             patients: 0
         });
 
         input.value = '';
+        document.getElementById('nurseRole').value = 'acute';
         saveState();
         updateUI();
     }
@@ -574,8 +631,13 @@
             return;
         }
 
-        if (!selectedNurseId) {
-            const lowest = [...nurses].sort((a,b) => a.score - b.score)[0];
+        if (!selectedNurseId || !nurses.some(n => n.id === selectedNurseId)) {
+            const priorityNurses = getPriorityNurses();
+            if (priorityNurses.length === 0) {
+                alert('برای تخصیص خودکار، ابتدا حداقل یک پرستار با نقش حاد اضافه یا انتخاب کنید.');
+                return;
+            }
+            const lowest = [...priorityNurses].sort((a,b) => a.score - b.score)[0];
             selectedNurseId = lowest.id;
         }
 
@@ -644,28 +706,31 @@
     function updateUI() {
         const container = document.getElementById('nurseCardsContainer');
         
-        let minScore = Infinity;
-        if (nurses.length > 0) {
-            minScore = Math.min(...nurses.map(n => n.score));
-        }
+        const priorityNurses = getPriorityNurses();
+        const minScore = priorityNurses.length > 0
+            ? Math.min(...priorityNurses.map(n => n.score))
+            : Infinity;
 
-        if (!selectedNurseId && nurses.length > 0) {
-            const lowest = [...nurses].sort((a,b) => a.score - b.score)[0];
+        if ((!selectedNurseId || !nurses.some(n => n.id === selectedNurseId)) && priorityNurses.length > 0) {
+            const lowest = [...priorityNurses].sort((a,b) => a.score - b.score)[0];
             selectedNurseId = lowest.id;
         }
 
-        // رندر کارت‌های بسیار فشرده ۳ ستونه
+        // فقط گروه حاد در اولویت‌بندی خودکار شرکت می‌کند؛ OR و CPR قابل انتخاب دستی هستند.
         container.innerHTML = nurses.map(nurse => {
             const isSelected = nurse.id === selectedNurseId;
-            const isSuggested = (nurse.score === minScore && nurses.length > 1);
+            const isPriorityRole = getNurseRole(nurse) === 'acute';
+            const isSuggested = isPriorityRole && nurse.score === minScore && priorityNurses.length > 1;
+            const roleLabel = nurseRoleLabels[getNurseRole(nurse)];
 
             return `
                 <div class="nurse-card ${isSelected ? 'selected' : ''} ${isSuggested ? 'suggested' : ''}" onclick="selectNurse(${nurse.id})">
                     ${isSuggested ? '<span class="suggested-dot">اولویت</span>' : ''}
+                    <button class="btn-del-nurse" aria-label="حذف پرستار ${nurse.name}" onclick="removeNurse(${nurse.id}, event)">✕</button>
                     <div class="nurse-top">
                         <span class="nurse-name" title="${nurse.name}">${nurse.name}</span>
-                        <button class="btn-del-nurse" onclick="removeNurse(${nurse.id}, event)">✕</button>
                     </div>
+                    <span class="nurse-role">${roleLabel}</span>
                     <div class="nurse-bottom">
                         <span class="nurse-count">${nurse.patients} بیمار</span>
                         <span class="nurse-points">${nurse.score}</span>
