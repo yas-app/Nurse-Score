@@ -166,9 +166,43 @@
             font-weight: bold;
         }
 
+        .shift-info-actions {
+            display: flex;
+            align-items: end;
+        }
+        .btn-register-shift {
+            width: 100%;
+            height: 34px;
+            border: 0;
+            border-radius: 7px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: filter .15s ease, transform .15s ease;
+        }
+        .btn-register-shift:active { transform: scale(.98); }
+        .shift-summary {
+            display: none;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px 13px;
+            margin: -2px 0 9px;
+            padding: 7px 10px;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            background: #eff6ff;
+            color: #1e3a8a;
+            font-size: .78rem;
+            line-height: 1.8;
+        }
+        .shift-summary.visible { display: flex; }
+        .shift-summary strong { color: #1d4ed8; }
         @media (max-width: 380px) {
             .shift-info-box { grid-template-columns: 1fr 1fr; }
             .shift-info-field:first-child { grid-column: 1 / -1; }
+            .shift-info-actions { grid-column: 1 / -1; }
         }
 
         /* نوار ثبت پرستار - باریک و فشرده */
@@ -510,7 +544,7 @@
     <section class="shift-info-box" aria-label="مشخصات شیفت">
         <div class="shift-info-field">
             <label for="shiftSupervisor">مسئول شیفت</label>
-            <input type="text" id="shiftSupervisor" placeholder="نام مسئول شیفت" autocomplete="off" oninput="saveShiftInfo()">
+            <input type="text" id="shiftSupervisor" placeholder="نام مسئول شیفت" autocomplete="off">
         </div>
         <div class="shift-info-field">
             <label for="shiftDate">تاریخ شیفت (شمسی)</label>
@@ -518,13 +552,17 @@
         </div>
         <div class="shift-info-field">
             <label for="shiftType">نوع شیفت</label>
-            <select id="shiftType" onchange="saveShiftInfo()">
-                <option value="D">D</option>
-                <option value="E">E</option>
-                <option value="N">N</option>
+            <select id="shiftType">
+                <option value="morning">صبح</option>
+                <option value="evening">عصر</option>
+                <option value="night">شب</option>
             </select>
         </div>
+        <div class="shift-info-actions">
+            <button type="button" class="btn-register-shift" onclick="registerShiftInfo()">ثبت اطلاعات</button>
+        </div>
     </section>
+    <div id="shiftSummary" class="shift-summary" aria-live="polite"></div>
 
     <!-- ورودی افزودن پرستار -->
     <div class="add-nurse-box">
@@ -597,6 +635,7 @@
     const STORAGE_NURSES = 'er_nurses_' + DATA_VERSION;
     const STORAGE_LOGS = 'er_logs_' + DATA_VERSION;
     const STORAGE_SHIFT_INFO = 'er_shift_info_v1.4';
+    const SHIFT_LABELS = { morning: 'صبح', evening: 'عصر', night: 'شب' };
 
     const erServices = {
         triage: [
@@ -658,38 +697,69 @@
         updateUI();
     }
 
+    function getShiftDateBase() {
+        const now = new Date();
+        // از نیمه‌شب تا ساعت ۰۷:۳۰، تاریخ شیفت شب متعلق به روز قبل است.
+        if (now.getHours() < 7 || (now.getHours() === 7 && now.getMinutes() < 30)) {
+            now.setDate(now.getDate() - 1);
+        }
+        return now;
+    }
+
     function getCurrentJalaliDate() {
         const parts = new Intl.DateTimeFormat('en-US-u-ca-persian-nu-latn', {
             year: 'numeric', month: '2-digit', day: '2-digit'
-        }).formatToParts(new Date());
+        }).formatToParts(getShiftDateBase());
         const values = {};
         parts.forEach(part => { if (part.type !== 'literal') values[part.type] = part.value; });
         const latinDate = `${values.year}/${values.month}/${values.day}`;
         return latinDate.replace(/[0-9]/g, digit => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]);
     }
 
-    function refreshShiftDate(persist = true) {
-        document.getElementById('shiftDate').value = getCurrentJalaliDate();
-        if (persist && document.getElementById('shiftSupervisor')) saveShiftInfo();
+    function refreshShiftDate() {
+        const dateField = document.getElementById('shiftDate');
+        if (!dateField) return;
+        dateField.value = getCurrentJalaliDate();
+        // اگر اطلاعات قبلاً ثبت شده باشد، تاریخ نمایشی و ذخیره‌شده با تاریخ جاری شیفت هماهنگ می‌شود.
+        const saved = JSON.parse(localStorage.getItem(STORAGE_SHIFT_INFO) || 'null');
+        if (saved && saved.registered) {
+            saved.date = dateField.value;
+            localStorage.setItem(STORAGE_SHIFT_INFO, JSON.stringify(saved));
+            renderShiftSummary(saved);
+        }
     }
 
     function loadShiftInfo() {
         try {
             const saved = JSON.parse(localStorage.getItem(STORAGE_SHIFT_INFO) || '{}');
             document.getElementById('shiftSupervisor').value = saved.supervisor || '';
-            document.getElementById('shiftType').value = ['D', 'E', 'N'].includes(saved.shift) ? saved.shift : 'D';
+            document.getElementById('shiftType').value = ['morning', 'evening', 'night'].includes(saved.shift) ? saved.shift : 'morning';
+            refreshShiftDate();
+            if (saved.registered) renderShiftSummary({ ...saved, date: getCurrentJalaliDate() });
         } catch (error) {
             console.error('خطا در بازیابی مشخصات شیفت:', error);
         }
-        refreshShiftDate();
     }
 
-    function saveShiftInfo() {
-        localStorage.setItem(STORAGE_SHIFT_INFO, JSON.stringify({
+    function renderShiftSummary(info) {
+        const summary = document.getElementById('shiftSummary');
+        if (!summary || !info || !info.registered) return;
+        const safeSupervisor = String(info.supervisor || '—').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+        const shiftLabel = SHIFT_LABELS[info.shift] || 'صبح';
+        summary.innerHTML = `<span>مسئول شیفت: <strong>${safeSupervisor}</strong></span><span>تاریخ: <strong>${info.date || getCurrentJalaliDate()}</strong></span><span>شیفت: <strong>${shiftLabel}</strong></span><span aria-label="ثبت شده">✓ ثبت شده</span>`;
+        summary.classList.add('visible');
+    }
+
+    function registerShiftInfo() {
+        const info = {
             supervisor: document.getElementById('shiftSupervisor').value.trim(),
-            date: document.getElementById('shiftDate').value,
-            shift: document.getElementById('shiftType').value
-        }));
+            date: getCurrentJalaliDate(),
+            shift: document.getElementById('shiftType').value,
+            registered: true
+        };
+        document.getElementById('shiftDate').value = info.date;
+        localStorage.setItem(STORAGE_SHIFT_INFO, JSON.stringify(info));
+        renderShiftSummary(info);
     }
 
     function saveState() {
@@ -791,8 +861,10 @@
             selectedNurseId = null;
             localStorage.removeItem(STORAGE_SHIFT_INFO);
             document.getElementById('shiftSupervisor').value = '';
-            document.getElementById('shiftType').value = 'D';
-            refreshShiftDate(false);
+            document.getElementById('shiftType').value = 'morning';
+            document.getElementById('shiftSummary').innerHTML = '';
+            document.getElementById('shiftSummary').classList.remove('visible');
+            refreshShiftDate();
             saveState();
             updateUI();
         }
