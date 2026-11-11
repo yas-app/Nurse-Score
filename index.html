@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>سامانه توزیع بیماران و تعرفه اورژانس - v1.4</title>
+    <title>سامانه توزیع بیماران و تعرفه اورژانس - v1.5</title>
 
     <!-- تنظیمات آیکون و وب‌اپلیکیشن (افزودن به صفحه اصلی / Add to Home Screen) -->
     <meta name="theme-color" content="#0284c7">
@@ -527,6 +527,102 @@
             .mobile-bar { display: none; }
             body { padding-bottom: 16px; }
         }
+
+        /* ===== v1.5: وضعیت مشغول/آزاد برای نقش CPR ===== */
+        .is-hidden { display: none !important; }
+
+        .add-nurse-box { flex-wrap: wrap; }
+        .add-nurse-box select#cprStatus { max-width: 84px; }
+        .add-nurse-box .btn-primary { min-height: 34px; }
+
+        .nurse-card { -webkit-touch-callout: none; }
+        .nurse-tags {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px;
+            margin-top: 3px;
+        }
+        .nurse-tags .nurse-role { margin-top: 0; }
+        .cpr-status {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.62rem;
+            line-height: 1.5;
+            font-weight: bold;
+            border: 1px solid transparent;
+        }
+        .cpr-status.busy { background: #fef3c7; color: #b45309; border-color: #fcd34d; }
+        .cpr-status.free { background: var(--success-bg); color: var(--success-text); border-color: #86efac; }
+        .nurse-card.cpr-busy { background-image: repeating-linear-gradient(135deg, transparent 0 8px, rgba(245,158,11,0.06) 8px 16px); }
+
+        .cpr-hint {
+            margin: -4px 0 10px;
+            padding: 5px 9px;
+            border-radius: 7px;
+            background: #fffbeb;
+            border: 1px dashed #fcd34d;
+            color: #92400e;
+            font-size: 0.72rem;
+            line-height: 1.8;
+        }
+
+        .dialog-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 1100;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.55);
+            animation: dlgFade .15s ease;
+        }
+        .dialog-backdrop[hidden] { display: none; }
+        .dialog {
+            width: 100%;
+            max-width: 380px;
+            margin-bottom: env(safe-area-inset-bottom, 0px);
+            padding: 16px 14px 12px;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            animation: dlgUp .18s ease;
+        }
+        .dialog h2 { font-size: 0.95rem; color: var(--primary-dark); margin-bottom: 2px; }
+        .dialog-name { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; }
+        .dialog-name b { color: var(--text-main); }
+        .status-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .status-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 12px 8px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-weight: bold;
+        }
+        .status-option small { font-size: 0.68rem; font-weight: normal; color: var(--text-muted); line-height: 1.6; text-align: center; }
+        .status-option.busy.active { border-color: #f59e0b; background: #fffbeb; }
+        .status-option.free.active { border-color: var(--success); background: #f0fdf4; }
+        .status-option.active::after { content: '✓ فعلی'; font-size: 0.68rem; color: var(--text-muted); font-weight: normal; }
+        .status-option:active { transform: scale(0.97); }
+        .btn-dialog-cancel {
+            width: 100%;
+            margin-top: 10px;
+            padding: 9px;
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: bold;
+        }
+        @keyframes dlgFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes dlgUp { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+        @media (min-width: 768px) { .dialog-backdrop { align-items: center; } }
     </style>
 </head>
 <body>
@@ -536,7 +632,7 @@
     <header>
         <div class="header-title">
             <h1>سامانه توزیع بیماران اورژانس</h1>
-            <span class="version-badge">v1.4</span>
+            <span class="version-badge">v1.5</span>
         </div>
         <button class="btn-reset" onclick="resetShift()">پایان شیفت / ریست</button>
     </header>
@@ -568,16 +664,21 @@
     <!-- ورودی افزودن پرستار -->
     <div class="add-nurse-box">
         <input type="text" id="nurseInput" placeholder="نام پرستار جدید..." onkeypress="if(event.key==='Enter') addNurse()">
-        <select id="nurseRole" aria-label="نقش پرستار">
+        <select id="nurseRole" aria-label="نقش پرستار" onchange="toggleCprStatusField()">
             <option value="acute">حاد</option>
             <option value="or">OR</option>
             <option value="cpr">CPR</option>
+        </select>
+        <select id="cprStatus" class="is-hidden" aria-label="وضعیت پرستار CPR">
+            <option value="busy">مشغول</option>
+            <option value="free">آزاد</option>
         </select>
         <button class="btn-primary" onclick="addNurse()">+ افزودن</button>
     </div>
 
     <!-- داشبورد فشرده پرستاران (همه ۷ نفر روی صفحه جا می‌شوند) -->
     <div class="nurses-grid" id="nurseCardsContainer"></div>
+    <div class="cpr-hint is-hidden" id="cprHint">💡 برای تغییر وضعیت «مشغول / آزاد» پرستار CPR، روی کارت او نگه دارید.</div>
 
     <!-- بخش خدمات (تریاژ در صدر) -->
     <div class="card">
@@ -621,6 +722,25 @@
     </div>
 </div>
 
+<!-- پنجره تغییر وضعیت پرستار CPR (با نگه‌داشتن روی کارت باز می‌شود) -->
+<div class="dialog-backdrop" id="cprDialog" hidden onclick="onCprDialogBackdrop(event)">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="cprDialogTitle">
+        <h2 id="cprDialogTitle">وضعیت پرستار CPR</h2>
+        <p class="dialog-name">پرستار: <b id="cprDialogName"></b></p>
+        <div class="status-options">
+            <button type="button" class="status-option busy" id="cprOptBusy" onclick="setCprStatusFromDialog('busy')">
+                مشغول
+                <small>در اولویت‌بندی امتیازات نیست</small>
+            </button>
+            <button type="button" class="status-option free" id="cprOptFree" onclick="setCprStatusFromDialog('free')">
+                آزاد
+                <small>در اولویت‌بندی امتیازات قرار می‌گیرد</small>
+            </button>
+        </div>
+        <button type="button" class="btn-dialog-cancel" onclick="closeCprDialog()">انصراف</button>
+    </div>
+</div>
+
 <!-- نوار چسبان وضعیت در موبایل -->
 <div class="mobile-bar">
     <div class="mobile-bar-info">
@@ -630,7 +750,7 @@
 </div>
 
 <script>
-    const APP_VERSION = 'v1.4';
+    const APP_VERSION = 'v1.5';
     // Keep the existing storage namespace so previously saved data remains available.
     const DATA_VERSION = 'v1.1';
     const STORAGE_NURSES = 'er_nurses_' + DATA_VERSION;
@@ -667,11 +787,24 @@
     let selectedNurseId = null;
 
     const nurseRoleLabels = { acute: 'حاد', or: 'OR', cpr: 'CPR' };
+    const cprStatusLabels = { busy: 'مشغول', free: 'آزاد' };
     function getNurseRole(nurse) {
         return nurse.role === 'or' || nurse.role === 'cpr' ? nurse.role : 'acute';
     }
+    // وضعیت CPR: «مشغول» (پیش‌فرض) یا «آزاد»
+    function getCprStatus(nurse) {
+        return nurse.cprStatus === 'free' ? 'free' : 'busy';
+    }
+    // حاد همیشه در اولویت‌بندی است؛ CPR فقط وقتی «آزاد» است؛ OR هرگز.
+    function isInPriority(nurse) {
+        const role = getNurseRole(nurse);
+        return role === 'acute' || (role === 'cpr' && getCprStatus(nurse) === 'free');
+    }
     function getPriorityNurses() {
-        return nurses.filter(nurse => getNurseRole(nurse) === 'acute');
+        return nurses.filter(isInPriority);
+    }
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
     }
 
     function init() {
@@ -688,13 +821,22 @@
             if (savedNurses) nurses = JSON.parse(savedNurses);
             if (savedLogs) logs = JSON.parse(savedLogs);
             // پرستاران ذخیره‌شده در نسخه‌های قبلی، به‌صورت پیش‌فرض در گروه حاد قرار می‌گیرند.
-            nurses = nurses.map(nurse => ({ ...nurse, role: getNurseRole(nurse) }));
+            // پرستاران CPR ذخیره‌شده در نسخه‌های قبلی، به‌صورت پیش‌فرض «مشغول» هستند (رفتار قبلی حفظ می‌شود).
+            nurses = nurses.map(nurse => {
+                const role = getNurseRole(nurse);
+                const migrated = { ...nurse, role };
+                if (role === 'cpr') migrated.cprStatus = getCprStatus(nurse);
+                else delete migrated.cprStatus;
+                return migrated;
+            });
         } catch (e) {
             console.error(e);
         }
 
         loadShiftInfo();
         renderServices();
+        initCprLongPress();
+        toggleCprStatusField();
         updateUI();
     }
 
@@ -780,16 +922,20 @@
         const role = document.getElementById('nurseRole').value;
         if (!name) return;
 
-        nurses.push({
+        const nurse = {
             id: Date.now(),
             name: name,
             role: role,
             score: 0,
             patients: 0
-        });
+        };
+        if (role === 'cpr') nurse.cprStatus = document.getElementById('cprStatus').value === 'free' ? 'free' : 'busy';
+        nurses.push(nurse);
 
         input.value = '';
         document.getElementById('nurseRole').value = 'acute';
+        document.getElementById('cprStatus').value = 'busy';
+        toggleCprStatusField();
         saveState();
         updateUI();
     }
@@ -805,7 +951,117 @@
         }
     }
 
+    function toggleCprStatusField() {
+        const isCpr = document.getElementById('nurseRole').value === 'cpr';
+        document.getElementById('cprStatus').classList.toggle('is-hidden', !isCpr);
+    }
+
+    // ===== تغییر وضعیت CPR با نگه‌داشتن روی کارت (Long Press) =====
+    const LONG_PRESS_MS = 500;
+    let pressTimer = null;
+    let pressStart = null;
+    let longPressHandled = false;
+    let cprDialogNurseId = null;
+    let cprDialogOpenedAt = 0;
+
+    function cancelPressTimer() {
+        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+        pressStart = null;
+    }
+
+    function endPress() {
+        cancelPressTimer();
+        // کلیکِ بلافاصله بعد از رها کردن انگشت نباید کارت را انتخاب کند.
+        if (longPressHandled) setTimeout(() => { longPressHandled = false; }, 350);
+    }
+
+    function initCprLongPress() {
+        const container = document.getElementById('nurseCardsContainer');
+        const findCprCard = (target) => {
+            if (target.closest('.btn-del-nurse')) return null;
+            return target.closest('.nurse-card[data-cpr="1"]');
+        };
+
+        container.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            const card = findCprCard(e.target);
+            if (!card) return;
+            cancelPressTimer();
+            longPressHandled = false;
+            pressStart = { x: e.clientX, y: e.clientY };
+            const id = Number(card.dataset.id);
+            pressTimer = setTimeout(() => {
+                pressTimer = null;
+                longPressHandled = true;
+                if (navigator.vibrate) { try { navigator.vibrate(30); } catch (err) {} }
+                openCprDialog(id);
+            }, LONG_PRESS_MS);
+        });
+
+        container.addEventListener('pointermove', (e) => {
+            if (!pressTimer || !pressStart) return;
+            if (Math.hypot(e.clientX - pressStart.x, e.clientY - pressStart.y) > 10) cancelPressTimer();
+        });
+        ['pointerup', 'pointercancel', 'pointerleave'].forEach(type => container.addEventListener(type, endPress));
+
+        // کلیک راست در دسکتاپ و منوی بلندفشار اندروید هم همین پنجره را باز می‌کنند.
+        container.addEventListener('contextmenu', (e) => {
+            const card = findCprCard(e.target);
+            if (!card) return;
+            e.preventDefault();
+            cancelPressTimer();
+            longPressHandled = true;
+            openCprDialog(Number(card.dataset.id));
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeCprDialog();
+        });
+    }
+
+    function openCprDialog(id) {
+        const nurse = nurses.find(n => n.id === id);
+        if (!nurse || getNurseRole(nurse) !== 'cpr') return;
+        if (cprDialogNurseId === id) return; // جلوگیری از باز شدن دوباره
+        cprDialogNurseId = id;
+        cprDialogOpenedAt = Date.now();
+        document.getElementById('cprDialogName').textContent = nurse.name;
+        const current = getCprStatus(nurse);
+        document.getElementById('cprOptBusy').classList.toggle('active', current === 'busy');
+        document.getElementById('cprOptFree').classList.toggle('active', current === 'free');
+        document.getElementById('cprDialog').hidden = false;
+        document.getElementById(current === 'busy' ? 'cprOptFree' : 'cprOptBusy').focus({ preventScroll: true });
+    }
+
+    function closeCprDialog() {
+        cprDialogNurseId = null;
+        document.getElementById('cprDialog').hidden = true;
+    }
+
+    function onCprDialogBackdrop(event) {
+        if (event.target.id !== 'cprDialog') return;
+        // رها کردن انگشت بعد از نگه‌داشتن، نباید پنجره را فوراً ببندد.
+        if (Date.now() - cprDialogOpenedAt < 400) return;
+        closeCprDialog();
+    }
+
+    function setCprStatusFromDialog(status) {
+        setCprStatus(cprDialogNurseId, status);
+        closeCprDialog();
+    }
+
+    function setCprStatus(id, status) {
+        const nurse = nurses.find(n => n.id === id);
+        if (!nurse || getNurseRole(nurse) !== 'cpr') return;
+        nurse.cprStatus = status === 'free' ? 'free' : 'busy';
+        // اگر پرستار انتخاب‌شده «مشغول» شد، انتخاب به پرستار دارای کمترین امتیاز در اولویت‌بندی منتقل می‌شود.
+        if (nurse.cprStatus === 'busy' && selectedNurseId === id) selectedNurseId = null;
+        saveState();
+        updateUI();
+    }
+
     function selectNurse(id) {
+        if (longPressHandled) return;
         selectedNurseId = id;
         updateUI();
     }
@@ -819,7 +1075,7 @@
         if (!selectedNurseId || !nurses.some(n => n.id === selectedNurseId)) {
             const priorityNurses = getPriorityNurses();
             if (priorityNurses.length === 0) {
-                alert('برای تخصیص خودکار، ابتدا حداقل یک پرستار با نقش حاد اضافه یا انتخاب کنید.');
+                alert('برای تخصیص خودکار، ابتدا حداقل یک پرستار حاد (یا CPR با وضعیت «آزاد») اضافه کنید یا یک پرستار را دستی انتخاب کنید.');
                 return;
             }
             const lowest = [...priorityNurses].sort((a,b) => a.score - b.score)[0];
@@ -908,21 +1164,27 @@
             selectedNurseId = lowest.id;
         }
 
-        // فقط گروه حاد در اولویت‌بندی خودکار شرکت می‌کند؛ OR و CPR قابل انتخاب دستی هستند.
+        // حاد و CPR «آزاد» در اولویت‌بندی خودکار شرکت می‌کنند؛ OR و CPR «مشغول» فقط دستی قابل انتخاب‌اند.
         container.innerHTML = nurses.map(nurse => {
+            const role = getNurseRole(nurse);
+            const isCpr = role === 'cpr';
+            const cprStatus = isCpr ? getCprStatus(nurse) : null;
             const isSelected = nurse.id === selectedNurseId;
-            const isPriorityRole = getNurseRole(nurse) === 'acute';
-            const isSuggested = isPriorityRole && nurse.score === minScore && priorityNurses.length > 1;
-            const roleLabel = nurseRoleLabels[getNurseRole(nurse)];
+            const isSuggested = isInPriority(nurse) && nurse.score === minScore && priorityNurses.length > 1;
+            const roleLabel = nurseRoleLabels[role];
+            const safeName = escapeHtml(nurse.name);
 
             return `
-                <div class="nurse-card ${isSelected ? 'selected' : ''} ${isSuggested ? 'suggested' : ''}" onclick="selectNurse(${nurse.id})">
+                <div class="nurse-card ${isSelected ? 'selected' : ''} ${isSuggested ? 'suggested' : ''} ${isCpr && cprStatus === 'busy' ? 'cpr-busy' : ''}" data-id="${nurse.id}" ${isCpr ? 'data-cpr="1"' : ''} onclick="selectNurse(${nurse.id})">
                     ${isSuggested ? '<span class="suggested-dot">اولویت</span>' : ''}
-                    <button class="btn-del-nurse" aria-label="حذف پرستار ${nurse.name}" onclick="removeNurse(${nurse.id}, event)">✕</button>
+                    <button class="btn-del-nurse" aria-label="حذف پرستار ${safeName}" onclick="removeNurse(${nurse.id}, event)">✕</button>
                     <div class="nurse-top">
-                        <span class="nurse-name" title="${nurse.name}">${nurse.name}</span>
+                        <span class="nurse-name" title="${safeName}">${safeName}</span>
                     </div>
-                    <span class="nurse-role">${roleLabel}</span>
+                    <div class="nurse-tags">
+                        <span class="nurse-role">${roleLabel}</span>
+                        ${isCpr ? `<span class="cpr-status ${cprStatus}">${cprStatusLabels[cprStatus]}</span>` : ''}
+                    </div>
                     <div class="nurse-bottom">
                         <span class="nurse-count">${nurse.patients} بیمار</span>
                         <span class="nurse-points">${nurse.score}</span>
@@ -930,6 +1192,8 @@
                 </div>
             `;
         }).join('');
+
+        document.getElementById('cprHint').classList.toggle('is-hidden', !nurses.some(n => getNurseRole(n) === 'cpr'));
 
         const activeNurse = nurses.find(n => n.id === selectedNurseId);
         document.getElementById('mobileNurseName').innerText = activeNurse ? activeNurse.name : 'انتخاب نشده';
@@ -939,7 +1203,7 @@
         tbody.innerHTML = logs.slice(0, 10).map(log => `
             <tr>
                 <td style="color:var(--text-muted);">${log.time}</td>
-                <td><b>${log.nurseName}</b></td>
+                <td><b>${escapeHtml(log.nurseName)}</b></td>
                 <td>${log.serviceName}</td>
                 <td style="direction:ltr; font-weight:bold; color:var(--primary-dark); text-align:left;">+${log.score}</td>
                 <td><button class="btn-delete-log" onclick="deleteLog(${log.id})">حذف</button></td>
